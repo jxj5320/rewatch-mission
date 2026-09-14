@@ -40,15 +40,27 @@
   .wrap{max-width:560px;margin:0 auto;}
 
   header.app-header{
-    display:flex; flex-direction:column; gap:4px;
+    display:flex; flex-direction:row; align-items:flex-start; justify-content:space-between; gap:12px;
     margin-bottom:24px;
   }
+  header.app-header .title-block{display:flex; flex-direction:column; gap:4px;}
   header.app-header h1{
     font-size:26px; font-weight:700; margin:0; color:var(--text-main);
   }
   header.app-header .date-line{
     color:var(--text-muted); font-size:14px; font-weight:600;
   }
+  .copy-link-btn{
+    flex:0 0 auto;
+    background:rgba(255,255,255,0.07);
+    color:var(--text-muted);
+    border:none; border-radius:var(--radius-pill);
+    padding:9px 14px; font-size:12.5px; font-weight:700;
+    display:flex; align-items:center; gap:6px;
+    cursor:pointer; white-space:nowrap; margin-top:2px;
+  }
+  .copy-link-btn:active{background:rgba(255,255,255,0.14);}
+  .copy-link-btn svg{width:14px;height:14px;}
 
   .video-card{
     background:linear-gradient(180deg, var(--navy-panel), var(--navy-panel-2));
@@ -95,11 +107,6 @@
     margin-top:8px; font-size:15px; font-weight:700; color:var(--text-main);
   }
   .progress-count span{color:var(--gold);}
-
-  .star-strip{
-    display:flex; gap:6px; margin-top:14px; flex-wrap:wrap;
-  }
-  .star-strip svg{width:20px;height:20px;flex:0 0 auto;}
 
   .play-btn{
     margin-top:16px;
@@ -218,7 +225,6 @@
     .video-card .target-line{font-size:14px;}
     .progress-track{height:16px;}
     .progress-count{font-size:16px;}
-    .star-strip svg{width:23px;height:23px;}
     .play-btn, .done-badge{font-size:17px; padding:15px 0;}
     .gear-btn{width:40px;height:40px; font-size:17px;}
 
@@ -245,8 +251,14 @@
 <body>
 <div class="wrap">
   <header class="app-header">
-    <h1>오늘의 다시보기 미션 🌙</h1>
-    <div class="date-line" id="dateLine"></div>
+    <div class="title-block">
+      <h1>오늘의 다시보기 미션 🌙</h1>
+      <div class="date-line" id="dateLine"></div>
+    </div>
+    <button class="copy-link-btn" id="copyLinkBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07l1.5-1.5"/></svg>
+      링크 복사
+    </button>
   </header>
 
   <div id="parentBar"></div>
@@ -270,9 +282,9 @@ function todayStr(){
 function loadMeta(){
   try{
     const raw = localStorage.getItem(META_KEY);
-    if(!raw) return { videos: [], progress: {}, stars: {} };
+    if(!raw) return { videos: [], progress: {} };
     return JSON.parse(raw);
-  }catch(e){ return { videos: [], progress: {}, stars: {} }; }
+  }catch(e){ return { videos: [], progress: {} }; }
 }
 function saveMeta(meta){
   localStorage.setItem(META_KEY, JSON.stringify(meta));
@@ -345,30 +357,11 @@ function showToast(msg, ms=2400){
   setTimeout(()=>{ if(root.contains(t)) root.removeChild(t); }, ms);
 }
 
-/* ---------------- Star SVG ---------------- */
-function starSVG(filled){
-  const color = filled ? 'var(--gold)' : 'rgba(255,255,255,0.15)';
-  return `<svg viewBox="0 0 24 24" fill="${color}"><path d="M12 2.5l2.85 6.32 6.9.7-5.2 4.64 1.55 6.84L12 17.9l-6.1 3.1 1.55-6.84-5.2-4.64 6.9-.7L12 2.5z"/></svg>`;
-}
-
 /* ---------------- Render ---------------- */
 function getTodayProgress(id){
   const p = meta.progress[id];
   if(!p || p.date !== todayStr()) return 0;
   return p.count;
-}
-function getRecentStars(id, days=7){
-  const arr = meta.stars[id] || [];
-  const set = new Set(arr);
-  const out = [];
-  const d = new Date();
-  for(let i=days-1;i>=0;i--){
-    const dt = new Date(d);
-    dt.setDate(d.getDate()-i);
-    const key = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
-    out.push(set.has(key));
-  }
-  return out;
 }
 
 function render(){
@@ -389,7 +382,6 @@ function render(){
     grid.innerHTML = meta.videos.map(v=>{
       const count = getTodayProgress(v.id);
       const pct = Math.min(100, Math.round((count / v.target) * 100));
-      const stars = getRecentStars(v.id, 7);
       const doneToday = count >= v.target;
       return `
       <div class="video-card" data-id="${v.id}">
@@ -404,9 +396,8 @@ function render(){
           <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
           <div class="progress-count">오늘 <span>${count}</span> / ${v.target}회</div>
         </div>
-        <div class="star-strip">${stars.map(s=>starSVG(s)).join('')}</div>
         ${doneToday
-          ? `<div class="done-badge">오늘 미션 완료! 별 획득 ⭐</div><button class="play-btn" data-play="${v.id}" style="margin-top:10px;background:rgba(244,201,93,0.18);color:var(--gold);">한 번 더 보기</button>`
+          ? `<div class="done-badge">오늘 미션 완료! 🎉</div><button class="play-btn" data-play="${v.id}" style="margin-top:10px;background:rgba(244,201,93,0.18);color:var(--gold);">한 번 더 보기</button>`
           : `<button class="play-btn" data-play="${v.id}">영상 보기</button>`}
       </div>`;
     }).join('');
@@ -478,7 +469,6 @@ function openEditModal(id){
     await deleteBlob(v.id);
     meta.videos = meta.videos.filter(x=>x.id!==v.id);
     delete meta.progress[v.id];
-    delete meta.stars[v.id];
     saveMeta(meta);
     closeModal(); render();
   };
@@ -668,9 +658,18 @@ async function openPlayer(id){
   video.addEventListener('ended', ()=>{
     if(sessionInvalid){
       showToast('이번 시청은 기록되지 않았어요. 다시 도전해봐요!');
-      return;
+    } else {
+      recordCompletion(v.id);
+      statusEl.textContent = '화면을 계속 보고 있으면 끝까지 봤을 때 1회로 기록돼요.';
     }
-    recordCompletion(v.id);
+    // reset playback position so the next play starts from the beginning
+    // (without this, currentTime stays at duration and pressing play again does nothing)
+    video.currentTime = 0;
+    sessionInvalid = false;
+    started = false;
+    lastTime = 0;
+    lastTick = performance.now();
+    playPauseBtn.textContent = '▶';
   });
 
   playPauseBtn.onclick = ()=>{
@@ -694,11 +693,6 @@ function recordCompletion(id){
     meta.progress[id] = { date: today, count: 0 };
   }
   meta.progress[id].count += 1;
-  const v = meta.videos.find(x=>x.id===id);
-  if(v && meta.progress[id].count >= v.target){
-    if(!meta.stars[id]) meta.stars[id] = [];
-    if(!meta.stars[id].includes(today)) meta.stars[id].push(today);
-  }
   saveMeta(meta);
   showToast('한 번 완료! (' + meta.progress[id].count + '회) 🎬');
 }
