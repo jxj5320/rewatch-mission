@@ -677,40 +677,33 @@ async function openPlayer(id){
   window.addEventListener('blur', onVisibilityOrBlur);
 
   video.addEventListener('ended', ()=>{
-    // Cover the video's last frame with a clear "finished" screen instead of
-    // leaving whatever frame the video happened to end on visible.
+    // Leave the video's last frame visible (don't cover it or jump anywhere) —
+    // only a small toast confirms what happened. The next play resets the
+    // position, not this moment, so nothing on screen changes automatically.
     if(sessionInvalid){
-      endOverlay.innerHTML = `
-        <div class="end-icon">↩️</div>
-        <div class="end-msg">이번엔 횟수에 반영되지 않았어요.<br>처음부터 다시 봐주세요!</div>
-        <button class="replay-btn" id="replayBtn">처음부터 다시 보기</button>`;
       showToast('이번 시청은 기록되지 않았어요. 다시 도전해봐요!');
     } else {
       recordCompletion(v.id);
-      const count = getTodayProgress(v.id);
-      endOverlay.innerHTML = `
-        <div class="end-icon">🎬</div>
-        <div class="end-msg">한 번 완료! (오늘 ${count} / ${v.target}회)</div>
-        <button class="replay-btn" id="replayBtn">한 번 더 보기</button>`;
       statusEl.textContent = '화면을 계속 보고 있으면 끝까지 봤을 때 1회로 기록돼요.';
     }
-    endOverlay.classList.add('show');
-
-    // reset playback position so the next play starts from the beginning
-    // (without this, currentTime stays at duration and pressing play again does nothing)
-    video.currentTime = 0;
-    sessionInvalid = false;
-    started = false;
-    lastTime = 0;
-    lastTick = performance.now();
     playPauseBtn.textContent = '▶';
-
-    const replayBtn = document.getElementById('replayBtn');
-    if(replayBtn) replayBtn.onclick = ()=> video.play();
   });
 
   playPauseBtn.onclick = ()=>{
-    if(video.paused) video.play(); else video.pause();
+    if(video.paused){
+      if(video.ended){
+        // reset playback position only now, right as replay starts —
+        // not immediately on 'ended', so the last frame doesn't flash away on its own
+        video.currentTime = 0;
+        sessionInvalid = false;
+        started = false;
+        lastTime = 0;
+        lastTick = performance.now();
+      }
+      video.play();
+    } else {
+      video.pause();
+    }
   };
 
   document.getElementById('closePlayer').onclick = ()=>{
