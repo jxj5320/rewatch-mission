@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>오늘의 다시보기 미션</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#161A3A;
+    --navy-panel:#20254D;
+    --navy-panel-2:#2A3060;
+    --gold:#F4C95D;
+    --gold-dim:#5B5638;
+    --pink:#F2789F;
+    --mint:#6FE3C4;
+    --text-main:#F3F1FF;
+    --text-muted:#9C98C9;
+    --radius-card:22px;
+    --radius-pill:999px;
+    --radius-badge:50%;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 12% 8%, rgba(244,201,93,0.10), transparent 40%),
+      radial-gradient(circle at 88% 82%, rgba(111,227,196,0.08), transparent 45%),
+      var(--navy-deep);
+    color:var(--text-main);
+    font-family:'Nunito', sans-serif;
+    min-height:100vh;
+    padding:28px 16px 80px;
+  }
+  h1,h2,h3,.display{
+    font-family:'Baloo 2', sans-serif;
+  }
+  .wrap{max-width:560px;margin:0 auto;}
+
+  header.app-header{
+    display:flex; flex-direction:column; gap:4px;
+    margin-bottom:24px;
+  }
+  header.app-header h1{
+    font-size:26px; font-weight:700; margin:0; color:var(--text-main);
+  }
+  header.app-header .date-line{
+    color:var(--text-muted); font-size:14px; font-weight:600;
+  }
+
+  .video-card{
+    background:linear-gradient(180deg, var(--navy-panel), var(--navy-panel-2));
+    border-radius:var(--radius-card);
+    padding:20px 20px 18px;
+    margin-bottom:16px;
+    box-shadow:0 8px 24px rgba(8,10,30,0.35);
+    position:relative;
+    border:1px solid rgba(255,255,255,0.04);
+  }
+  .video-card .card-top{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap:10px;
+  }
+  .video-card h3{
+    font-size:19px; margin:0 0 2px; font-weight:600; line-height:1.3;
+  }
+  .video-card .target-line{
+    color:var(--text-muted); font-size:13px; font-weight:600;
+  }
+  .gear-btn{
+    background:rgba(255,255,255,0.06);
+    border:none; border-radius:var(--radius-badge);
+    width:34px;height:34px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--text-muted);
+  }
+  .gear-btn:active{background:rgba(255,255,255,0.14);}
+
+  .progress-row{margin-top:16px;}
+  .progress-track{
+    height:14px; border-radius:var(--radius-pill);
+    background:rgba(255,255,255,0.08);
+    overflow:hidden;
+    position:relative;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--mint), var(--gold));
+    border-radius:var(--radius-pill);
+    transition:width .4s ease;
+  }
+  .progress-count{
+    margin-top:8px; font-size:15px; font-weight:700; color:var(--text-main);
+  }
+  .progress-count span{color:var(--gold);}
+
+  .star-strip{
+    display:flex; gap:6px; margin-top:14px; flex-wrap:wrap;
+  }
+  .star-strip svg{width:20px;height:20px;flex:0 0 auto;}
+
+  .play-btn{
+    margin-top:16px;
+    width:100%;
+    background:var(--gold);
+    color:#2A2308;
+    border:none;
+    padding:13px 0;
+    border-radius:var(--radius-pill);
+    font-family:'Baloo 2',sans-serif;
+    font-size:16px; font-weight:700;
+    cursor:pointer;
+  }
+  .play-btn:active{transform:scale(0.98);}
+  .done-badge{
+    margin-top:16px; text-align:center; padding:12px 0;
+    background:rgba(244,201,93,0.12);
+    border-radius:var(--radius-pill);
+    color:var(--gold); font-weight:700; font-family:'Baloo 2',sans-serif;
+  }
+
+  .add-card{
+    border:2px dashed rgba(255,255,255,0.18);
+    border-radius:var(--radius-card);
+    padding:26px 20px;
+    text-align:center;
+    color:var(--text-muted);
+    cursor:pointer;
+    font-weight:700;
+  }
+  .add-card:active{background:rgba(255,255,255,0.03);}
+
+  .empty-state{
+    text-align:center; color:var(--text-muted); padding:40px 10px;
+    font-size:15px; line-height:1.6;
+  }
+
+  /* Modal base */
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,11,26,0.72);
+    display:flex; align-items:flex-end; justify-content:center;
+    z-index:50;
+  }
+  .overlay.center{align-items:center;}
+  .sheet{
+    background:var(--navy-panel);
+    width:100%; max-width:520px;
+    border-radius:24px 24px 0 0;
+    padding:24px 22px calc(24px + env(safe-area-inset-bottom));
+    max-height:88vh; overflow-y:auto;
+  }
+  .overlay.center .sheet{border-radius:22px;}
+  .sheet h2{font-size:19px; margin:0 0 16px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:13px; color:var(--text-muted); margin-bottom:6px; font-weight:700;}
+  .field input[type=text], .field input[type=number], .field input[type=password]{
+    width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,0.12);
+    background:rgba(255,255,255,0.05); color:var(--text-main); font-size:15px; font-family:'Nunito',sans-serif;
+  }
+  .field input[type=file]{color:var(--text-muted); font-size:14px;}
+  .btn-row{display:flex; gap:10px; margin-top:18px;}
+  .btn{
+    flex:1; padding:13px 0; border-radius:var(--radius-pill); border:none;
+    font-weight:700; font-family:'Baloo 2',sans-serif; font-size:15px; cursor:pointer;
+  }
+  .btn.primary{background:var(--gold); color:#2A2308;}
+  .btn.ghost{background:rgba(255,255,255,0.08); color:var(--text-main);}
+  .btn.danger{background:rgba(242,120,159,0.16); color:var(--pink);}
+  .hint{font-size:12.5px; color:var(--text-muted); margin-top:10px; line-height:1.5;}
+  .error-text{color:var(--pink); font-size:13px; margin-top:6px; font-weight:700;}
+
+  /* Player */
+  .player-overlay{
+    position:fixed; inset:0; background:#000; z-index:60;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .player-overlay video{width:100%; max-height:70vh; background:#000;}
+  .player-controls{
+    display:flex; align-items:center; gap:16px; margin-top:18px; width:100%; max-width:480px; padding:0 20px;
+  }
+  .player-controls button{
+    background:rgba(255,255,255,0.1); border:none; color:#fff;
+    width:52px;height:52px;border-radius:50%; font-size:20px; cursor:pointer;
+  }
+  .player-close{
+    position:absolute; top:18px; right:18px; background:rgba(255,255,255,0.1);
+    border:none; color:#fff; width:38px;height:38px;border-radius:50%; font-size:16px; cursor:pointer;
+  }
+  .player-status{color:var(--text-muted); font-size:13px; margin-top:14px; text-align:center; padding:0 24px; line-height:1.6;}
+  .player-title{color:#fff; font-family:'Baloo 2',sans-serif; margin-top:16px; font-size:16px;}
+
+  .toast{
+    position:fixed; left:50%; bottom:30px; transform:translateX(-50%);
+    background:var(--gold); color:#2A2308; padding:14px 22px; border-radius:var(--radius-pill);
+    font-weight:700; font-family:'Baloo 2',sans-serif; z-index:80; box-shadow:0 10px 30px rgba(0,0,0,0.4);
+    max-width:88vw; text-align:center;
+  }
+
+  .lock-toggle{
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(255,255,255,0.05); border-radius:16px; padding:12px 16px; margin-bottom:16px;
+    font-size:13.5px; color:var(--text-muted);
+  }
+  .lock-toggle b{color:var(--text-main);}
+
+  /* ---------- Tablet (Galaxy Tab and similar, ~700px+) ---------- */
+  @media (min-width:700px){
+    body{padding:44px 40px 100px;}
+    .wrap{max-width:920px;}
+    header.app-header h1{font-size:34px;}
+    header.app-header .date-line{font-size:16px;}
+
+    #videoGrid{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+    .video-card{margin-bottom:0; padding:26px 26px 24px;}
+    .video-card h3{font-size:22px;}
+    .video-card .target-line{font-size:14px;}
+    .progress-track{height:16px;}
+    .progress-count{font-size:16px;}
+    .star-strip svg{width:23px;height:23px;}
+    .play-btn, .done-badge{font-size:17px; padding:15px 0;}
+    .gear-btn{width:40px;height:40px; font-size:17px;}
+
+    .add-card{font-size:17px; padding:32px 20px;}
+
+    .sheet{max-width:560px; border-radius:26px;}
+    .field input[type=text], .field input[type=number], .field input[type=password]{font-size:16px; padding:14px 16px;}
+    .btn{font-size:16px; padding:15px 0;}
+
+    .player-overlay video{max-height:78vh;}
+    .player-controls button{width:60px;height:60px;font-size:22px;}
+    .player-title{font-size:18px;}
+    .player-status{font-size:14px; max-width:520px;}
+  }
+
+  /* ---------- Large tablet landscape (Galaxy Tab S-series landscape, ~1000px+) ---------- */
+  @media (min-width:1000px){
+    .wrap{max-width:1080px;}
+    #videoGrid{grid-template-columns:1fr 1fr 1fr;}
+    .player-overlay video{max-height:82vh; max-width:1100px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app-header">
+    <h1>오늘의 다시보기 미션 🌙</h1>
+    <div class="date-line" id="dateLine"></div>
+  </header>
+
+  <div id="parentBar"></div>
+  <div id="videoGrid"></div>
+  <div id="addCardWrap"></div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ---------------- Storage: metadata in localStorage, video blobs in IndexedDB ---------------- */
+const META_KEY = 'rwm_meta_v1';
+const PW_KEY = 'rwm_pw_hash_v1';
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function loadMeta(){
+  try{
+    const raw = localStorage.getItem(META_KEY);
+    if(!raw) return { videos: [], progress: {}, stars: {} };
+    return JSON.parse(raw);
+  }catch(e){ return { videos: [], progress: {}, stars: {} }; }
+}
+function saveMeta(meta){
+  localStorage.setItem(META_KEY, JSON.stringify(meta));
+}
+
+let meta = loadMeta();
+
+/* IndexedDB for video blobs */
+let dbPromise = new Promise((resolve, reject)=>{
+  const req = indexedDB.open('rwmDB_v1', 1);
+  req.onupgradeneeded = ()=>{
+    req.result.createObjectStore('blobs', {keyPath:'id'});
+  };
+  req.onsuccess = ()=> resolve(req.result);
+  req.onerror = ()=> reject(req.error);
+});
+async function putBlob(id, blob){
+  const db = await dbPromise;
+  return new Promise((res,rej)=>{
+    const tx = db.transaction('blobs','readwrite');
+    tx.objectStore('blobs').put({id, blob});
+    tx.oncomplete = ()=>res();
+    tx.onerror = ()=>rej(tx.error);
+  });
+}
+async function getBlob(id){
+  const db = await dbPromise;
+  return new Promise((res,rej)=>{
+    const tx = db.transaction('blobs','readonly');
+    const req = tx.objectStore('blobs').get(id);
+    req.onsuccess = ()=> res(req.result ? req.result.blob : null);
+    req.onerror = ()=> rej(req.error);
+  });
+}
+async function deleteBlob(id){
+  const db = await dbPromise;
+  return new Promise((res,rej)=>{
+    const tx = db.transaction('blobs','readwrite');
+    tx.objectStore('blobs').delete(id);
+    tx.oncomplete = ()=>res();
+    tx.onerror = ()=>rej(tx.error);
+  });
+}
+
+/* ---------------- Password (parent lock) ---------------- */
+async function sha256(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function hasPassword(){ return !!localStorage.getItem(PW_KEY); }
+async function setPassword(pw){
+  localStorage.setItem(PW_KEY, await sha256(pw));
+}
+async function checkPassword(pw){
+  const hash = localStorage.getItem(PW_KEY);
+  return hash === await sha256(pw);
+}
+
+let parentUnlocked = false;
+
+/* ---------------- Toast ---------------- */
+function showToast(msg, ms=2400){
+  const root = document.getElementById('toastRoot');
+  root.innerHTML = '';
+  const t = document.createElement('div');
+  t.className='toast';
+  t.textContent = msg;
+  root.appendChild(t);
+  setTimeout(()=>{ if(root.contains(t)) root.removeChild(t); }, ms);
+}
+
+/* ---------------- Star SVG ---------------- */
+function starSVG(filled){
+  const color = filled ? 'var(--gold)' : 'rgba(255,255,255,0.15)';
+  return `<svg viewBox="0 0 24 24" fill="${color}"><path d="M12 2.5l2.85 6.32 6.9.7-5.2 4.64 1.55 6.84L12 17.9l-6.1 3.1 1.55-6.84-5.2-4.64 6.9-.7L12 2.5z"/></svg>`;
+}
+
+/* ---------------- Render ---------------- */
+function getTodayProgress(id){
+  const p = meta.progress[id];
+  if(!p || p.date !== todayStr()) return 0;
+  return p.count;
+}
+function getRecentStars(id, days=7){
+  const arr = meta.stars[id] || [];
+  const set = new Set(arr);
+  const out = [];
+  const d = new Date();
+  for(let i=days-1;i>=0;i--){
+    const dt = new Date(d);
+    dt.setDate(d.getDate()-i);
+    const key = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+    out.push(set.has(key));
+  }
+  return out;
+}
+
+function render(){
+  document.getElementById('dateLine').textContent = todayStr() + ' · 매일 0회부터 다시 시작해요';
+
+  const parentBar = document.getElementById('parentBar');
+  if(parentUnlocked){
+    parentBar.innerHTML = `<div class="lock-toggle"><span>🔓 부모님 모드 켜짐 — 영상 추가·수정 가능</span><b id="lockBtn" style="cursor:pointer;">잠그기</b></div>`;
+    document.getElementById('lockBtn').onclick = ()=>{ parentUnlocked=false; render(); };
+  } else {
+    parentBar.innerHTML = '';
+  }
+
+  const grid = document.getElementById('videoGrid');
+  if(meta.videos.length === 0){
+    grid.innerHTML = `<div class="empty-state">아직 등록된 영상이 없어요.<br>아래 버튼으로 첫 영상을 추가해보세요.</div>`;
+  } else {
+    grid.innerHTML = meta.videos.map(v=>{
+      const count = getTodayProgress(v.id);
+      const pct = Math.min(100, Math.round((count / v.target) * 100));
+      const stars = getRecentStars(v.id, 7);
+      const doneToday = count >= v.target;
+      return `
+      <div class="video-card" data-id="${v.id}">
+        <div class="card-top">
+          <div>
+            <h3>${escapeHtml(v.title)}</h3>
+            <div class="target-line">오늘 목표 ${v.target}회</div>
+          </div>
+          ${parentUnlocked ? `<button class="gear-btn" data-edit="${v.id}">⚙</button>` : ''}
+        </div>
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="progress-count">오늘 <span>${count}</span> / ${v.target}회</div>
+        </div>
+        <div class="star-strip">${stars.map(s=>starSVG(s)).join('')}</div>
+        ${doneToday
+          ? `<div class="done-badge">오늘 미션 완료! 별 획득 ⭐</div><button class="play-btn" data-play="${v.id}" style="margin-top:10px;background:rgba(244,201,93,0.18);color:var(--gold);">한 번 더 보기</button>`
+          : `<button class="play-btn" data-play="${v.id}">영상 보기</button>`}
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('addCardWrap').innerHTML =
+    `<div class="add-card" id="addCardBtn">+ 새 영상 추가하기</div>`;
+
+  grid.querySelectorAll('[data-play]').forEach(btn=>{
+    btn.onclick = ()=> openPlayer(btn.getAttribute('data-play'));
+  });
+  grid.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.onclick = ()=> openEditModal(btn.getAttribute('data-edit'));
+  });
+  document.getElementById('addCardBtn').onclick = handleAddClick;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------- Parent unlock flow ---------------- */
+function handleAddClick(){
+  if(!hasPassword()){
+    openSetPasswordModal(()=>{ parentUnlocked = true; openAddModal(); });
+    return;
+  }
+  if(parentUnlocked){ openAddModal(); return; }
+  openEnterPasswordModal(()=>{ parentUnlocked = true; render(); openAddModal(); });
+}
+
+function openEditModal(id){
+  if(!parentUnlocked) return;
+  const v = meta.videos.find(x=>x.id===id);
+  if(!v) return;
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="overlay">
+    <div class="sheet">
+      <h2>영상 설정</h2>
+      <div class="field">
+        <label>영상 이름</label>
+        <input type="text" id="editTitle" value="${escapeHtml(v.title)}">
+      </div>
+      <div class="field">
+        <label>오늘 목표 재생 횟수</label>
+        <input type="number" id="editTarget" min="1" value="${v.target}">
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" id="cancelEdit">닫기</button>
+        <button class="btn primary" id="saveEdit">저장</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn danger" id="deleteVideo" style="flex:1;">이 영상 삭제하기</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('cancelEdit').onclick = closeModal;
+  document.getElementById('saveEdit').onclick = ()=>{
+    const title = document.getElementById('editTitle').value.trim();
+    const target = parseInt(document.getElementById('editTarget').value, 10);
+    if(!title || !target || target < 1){ showToast('이름과 목표 횟수를 확인해주세요'); return; }
+    v.title = title; v.target = target;
+    saveMeta(meta);
+    closeModal(); render();
+  };
+  document.getElementById('deleteVideo').onclick = async ()=>{
+    if(!confirm(`"${v.title}" 영상을 정말 삭제할까요? 기록도 함께 사라져요.`)) return;
+    await deleteBlob(v.id);
+    meta.videos = meta.videos.filter(x=>x.id!==v.id);
+    delete meta.progress[v.id];
+    delete meta.stars[v.id];
+    saveMeta(meta);
+    closeModal(); render();
+  };
+}
+
+function openSetPasswordModal(onSuccess){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="overlay center">
+    <div class="sheet">
+      <h2>부모님 비밀번호 설정</h2>
+      <div class="hint">영상 추가·삭제·목표 변경을 지킬 비밀번호를 처음 한 번만 정해주세요.</div>
+      <div class="field" style="margin-top:14px;">
+        <label>비밀번호</label>
+        <input type="password" id="pw1" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>비밀번호 확인</label>
+        <input type="password" id="pw2" inputmode="numeric">
+      </div>
+      <div class="error-text" id="pwErr" style="display:none;"></div>
+      <div class="btn-row">
+        <button class="btn ghost" id="cancelPw">취소</button>
+        <button class="btn primary" id="confirmPw">설정하기</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('cancelPw').onclick = closeModal;
+  document.getElementById('confirmPw').onclick = async ()=>{
+    const p1 = document.getElementById('pw1').value;
+    const p2 = document.getElementById('pw2').value;
+    const err = document.getElementById('pwErr');
+    if(!p1 || p1.length < 4){ err.textContent='4자리 이상으로 정해주세요.'; err.style.display='block'; return; }
+    if(p1 !== p2){ err.textContent='비밀번호가 서로 달라요.'; err.style.display='block'; return; }
+    await setPassword(p1);
+    closeModal();
+    onSuccess && onSuccess();
+  };
+}
+
+function openEnterPasswordModal(onSuccess){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="overlay center">
+    <div class="sheet">
+      <h2>부모님 확인</h2>
+      <div class="hint">영상 추가나 목표 변경은 부모님 비밀번호가 필요해요.</div>
+      <div class="field" style="margin-top:14px;">
+        <label>비밀번호</label>
+        <input type="password" id="pwEnter" inputmode="numeric">
+      </div>
+      <div class="error-text" id="pwEnterErr" style="display:none;">비밀번호가 맞지 않아요.</div>
+      <div class="btn-row">
+        <button class="btn ghost" id="cancelEnter">취소</button>
+        <button class="btn primary" id="confirmEnter">확인</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('cancelEnter').onclick = closeModal;
+  document.getElementById('confirmEnter').onclick = async ()=>{
+    const val = document.getElementById('pwEnter').value;
+    if(await checkPassword(val)){
+      closeModal();
+      onSuccess && onSuccess();
+    } else {
+      document.getElementById('pwEnterErr').style.display='block';
+    }
+  };
+}
+
+function openAddModal(){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="overlay">
+    <div class="sheet">
+      <h2>새 영상 추가</h2>
+      <div class="field">
+        <label>영상 이름</label>
+        <input type="text" id="newTitle" placeholder="예: Day 3 리딩 영상">
+      </div>
+      <div class="field">
+        <label>오늘 목표 재생 횟수</label>
+        <input type="number" id="newTarget" min="1" value="25">
+      </div>
+      <div class="field">
+        <label>영상 파일 (mp4 등)</label>
+        <input type="file" id="newFile" accept="video/*">
+      </div>
+      <div class="error-text" id="addErr" style="display:none;"></div>
+      <div class="btn-row">
+        <button class="btn ghost" id="cancelAdd">취소</button>
+        <button class="btn primary" id="confirmAdd">추가하기</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('cancelAdd').onclick = closeModal;
+  document.getElementById('confirmAdd').onclick = async ()=>{
+    const title = document.getElementById('newTitle').value.trim();
+    const target = parseInt(document.getElementById('newTarget').value, 10);
+    const file = document.getElementById('newFile').files[0];
+    const err = document.getElementById('addErr');
+    if(!title){ err.textContent='영상 이름을 입력해주세요.'; err.style.display='block'; return; }
+    if(!target || target < 1){ err.textContent='목표 횟수를 확인해주세요.'; err.style.display='block'; return; }
+    if(!file){ err.textContent='영상 파일을 선택해주세요.'; err.style.display='block'; return; }
+    const id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+    await putBlob(id, file);
+    meta.videos.push({id, title, target, createdAt: Date.now()});
+    saveMeta(meta);
+    closeModal();
+    render();
+    showToast('영상을 추가했어요 🌟');
+  };
+}
+
+function closeModal(){
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+/* ---------------- Player with completion + skip/away detection ---------------- */
+async function openPlayer(id){
+  const v = meta.videos.find(x=>x.id===id);
+  if(!v) return;
+  const blob = await getBlob(id);
+  if(!blob){ showToast('영상을 불러올 수 없어요.'); return; }
+  const url = URL.createObjectURL(blob);
+
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="player-overlay">
+    <button class="player-close" id="closePlayer">✕</button>
+    <video id="playerVideo" src="${url}" playsinline></video>
+    <div class="player-controls">
+      <button id="playPauseBtn">▶</button>
+    </div>
+    <div class="player-title">${escapeHtml(v.title)}</div>
+    <div class="player-status" id="playerStatus">화면을 계속 보고 있으면 끝까지 봤을 때 1회로 기록돼요.</div>
+  </div>`;
+
+  const video = document.getElementById('playerVideo');
+  const statusEl = document.getElementById('playerStatus');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+
+  let lastTime = 0;
+  let lastTick = performance.now();
+  let sessionInvalid = false;
+  let started = false;
+
+  function invalidate(reason){
+    if(sessionInvalid) return;
+    sessionInvalid = true;
+    statusEl.textContent = reason + ' — 이번엔 횟수에 반영되지 않아요. 처음부터 다시 봐주세요!';
+  }
+
+  video.addEventListener('play', ()=>{
+    started = true;
+    playPauseBtn.textContent = '⏸';
+    lastTick = performance.now();
+  });
+  video.addEventListener('pause', ()=>{
+    playPauseBtn.textContent = '▶';
+  });
+  video.addEventListener('timeupdate', ()=>{
+    const now = performance.now();
+    const deltaWall = (now - lastTick) / 1000;
+    const deltaVideo = video.currentTime - lastTime;
+    if(deltaVideo > deltaWall + 1.5 && deltaWall < 3){
+      invalidate('영상을 건너뛰었어요');
+    }
+    if(video.playbackRate && Math.abs(video.playbackRate - 1) > 0.05){
+      invalidate('재생 속도가 바뀌었어요');
+    }
+    lastTime = video.currentTime;
+    lastTick = now;
+  });
+  video.addEventListener('seeking', ()=>{
+    if(started) invalidate('영상을 건너뛰었어요');
+  });
+
+  function onVisibilityOrBlur(){
+    if((document.hidden || !document.hasFocus()) && !video.paused && started){
+      invalidate('다른 화면을 보고 있었어요');
+    }
+  }
+  document.addEventListener('visibilitychange', onVisibilityOrBlur);
+  window.addEventListener('blur', onVisibilityOrBlur);
+
+  video.addEventListener('ended', ()=>{
+    if(sessionInvalid){
+      showToast('이번 시청은 기록되지 않았어요. 다시 도전해봐요!');
+      return;
+    }
+    recordCompletion(v.id);
+  });
+
+  playPauseBtn.onclick = ()=>{
+    if(video.paused) video.play(); else video.pause();
+  };
+
+  document.getElementById('closePlayer').onclick = ()=>{
+    document.removeEventListener('visibilitychange', onVisibilityOrBlur);
+    window.removeEventListener('blur', onVisibilityOrBlur);
+    URL.revokeObjectURL(url);
+    closeModal();
+    render();
+  };
+
+  video.play().catch(()=>{ /* autoplay may be blocked, user taps play */ });
+}
+
+function recordCompletion(id){
+  const today = todayStr();
+  if(!meta.progress[id] || meta.progress[id].date !== today){
+    meta.progress[id] = { date: today, count: 0 };
+  }
+  meta.progress[id].count += 1;
+  const v = meta.videos.find(x=>x.id===id);
+  if(v && meta.progress[id].count >= v.target){
+    if(!meta.stars[id]) meta.stars[id] = [];
+    if(!meta.stars[id].includes(today)) meta.stars[id].push(today);
+  }
+  saveMeta(meta);
+  showToast('한 번 완료! (' + meta.progress[id].count + '회) 🎬');
+}
+
+/* ---------------- Init ---------------- */
+render();
+</script>
+</body>
+</html>
