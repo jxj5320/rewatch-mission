@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>오늘의 다시보기 미션</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -183,7 +183,22 @@
     position:fixed; inset:0; background:#000; z-index:60;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
   }
-  .player-overlay video{width:100%; max-height:70vh; background:#000;}
+  .player-overlay video{width:100%; max-height:70vh; background:#000; display:block;}
+  .video-wrap{position:relative; width:100%; display:flex; justify-content:center;}
+  .end-overlay{
+    position:absolute; inset:0;
+    background:rgba(16,18,42,0.94);
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; text-align:center; padding:20px;
+  }
+  .end-overlay.show{display:flex;}
+  .end-overlay .end-icon{font-size:38px;}
+  .end-overlay .end-msg{font-family:'Baloo 2',sans-serif; color:#fff; font-size:18px; font-weight:700; max-width:320px; line-height:1.4;}
+  .end-overlay .replay-btn{
+    background:var(--gold); color:#2A2308; border:none;
+    padding:14px 28px; border-radius:var(--radius-pill);
+    font-family:'Baloo 2',sans-serif; font-size:16px; font-weight:700; cursor:pointer;
+  }
   .player-controls{
     display:flex; align-items:center; gap:16px; margin-top:18px; width:100%; max-width:480px; padding:0 20px;
   }
@@ -599,7 +614,10 @@ async function openPlayer(id){
   root.innerHTML = `
   <div class="player-overlay">
     <button class="player-close" id="closePlayer">✕</button>
-    <video id="playerVideo" src="${url}" playsinline></video>
+    <div class="video-wrap">
+      <video id="playerVideo" src="${url}" playsinline></video>
+      <div class="end-overlay" id="endOverlay"></div>
+    </div>
     <div class="player-controls">
       <button id="playPauseBtn">▶</button>
     </div>
@@ -610,6 +628,7 @@ async function openPlayer(id){
   const video = document.getElementById('playerVideo');
   const statusEl = document.getElementById('playerStatus');
   const playPauseBtn = document.getElementById('playPauseBtn');
+  const endOverlay = document.getElementById('endOverlay');
 
   let lastTime = 0;
   let lastTick = performance.now();
@@ -626,6 +645,8 @@ async function openPlayer(id){
     started = true;
     playPauseBtn.textContent = '⏸';
     lastTick = performance.now();
+    endOverlay.classList.remove('show');
+    endOverlay.innerHTML = '';
   });
   video.addEventListener('pause', ()=>{
     playPauseBtn.textContent = '▶';
@@ -656,12 +677,25 @@ async function openPlayer(id){
   window.addEventListener('blur', onVisibilityOrBlur);
 
   video.addEventListener('ended', ()=>{
+    // Cover the video's last frame with a clear "finished" screen instead of
+    // leaving whatever frame the video happened to end on visible.
     if(sessionInvalid){
+      endOverlay.innerHTML = `
+        <div class="end-icon">↩️</div>
+        <div class="end-msg">이번엔 횟수에 반영되지 않았어요.<br>처음부터 다시 봐주세요!</div>
+        <button class="replay-btn" id="replayBtn">처음부터 다시 보기</button>`;
       showToast('이번 시청은 기록되지 않았어요. 다시 도전해봐요!');
     } else {
       recordCompletion(v.id);
+      const count = getTodayProgress(v.id);
+      endOverlay.innerHTML = `
+        <div class="end-icon">🎬</div>
+        <div class="end-msg">한 번 완료! (오늘 ${count} / ${v.target}회)</div>
+        <button class="replay-btn" id="replayBtn">한 번 더 보기</button>`;
       statusEl.textContent = '화면을 계속 보고 있으면 끝까지 봤을 때 1회로 기록돼요.';
     }
+    endOverlay.classList.add('show');
+
     // reset playback position so the next play starts from the beginning
     // (without this, currentTime stays at duration and pressing play again does nothing)
     video.currentTime = 0;
@@ -670,6 +704,9 @@ async function openPlayer(id){
     lastTime = 0;
     lastTick = performance.now();
     playPauseBtn.textContent = '▶';
+
+    const replayBtn = document.getElementById('replayBtn');
+    if(replayBtn) replayBtn.onclick = ()=> video.play();
   });
 
   playPauseBtn.onclick = ()=>{
@@ -696,6 +733,35 @@ function recordCompletion(id){
   saveMeta(meta);
   showToast('한 번 완료! (' + meta.progress[id].count + '회) 🎬');
 }
+
+/* ---------------- Copy link ---------------- */
+function copyAppLink(){
+  const url = window.location.href;
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(url).then(
+      ()=> showToast('링크를 복사했어요!'),
+      ()=> fallbackCopy(url)
+    );
+  } else {
+    fallbackCopy(url);
+  }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try{
+    document.execCommand('copy');
+    showToast('링크를 복사했어요!');
+  }catch(e){
+    showToast('복사에 실패했어요. 주소창에서 직접 복사해주세요.');
+  }
+  document.body.removeChild(ta);
+}
+document.getElementById('copyLinkBtn').addEventListener('click', copyAppLink);
 
 /* ---------------- Init ---------------- */
 render();
